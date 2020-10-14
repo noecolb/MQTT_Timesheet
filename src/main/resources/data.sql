@@ -1,0 +1,10 @@
+insert into	employees (comments) values ("first comment ");
+insert into projects (name ) values ("pac");
+insert into	employees (comments) values ("a great comment");
+insert into projects (name ) values ("pac a ma maison ");
+insert into	employees (comments) values ("a great comment ");
+insert into projects (name ) values ("pac a la maison json ");
+insert into	employees (comments) values ("a thrird great comment ");
+insert into projects (name ) values ("a la maison ");
+insert into	employees (comments) values ("a 4th comment");
+insert into projects (name ) values ("project name");
