@@ -3,6 +3,7 @@ package be.arlonpromsoc.pac.timesheet;
 import java.util.UUID;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -23,7 +24,7 @@ import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.MessageChannel;
 
-import be.arlonpromsoc.pac.timesheet.controller.TimesheetController;
+import be.arlonpromsoc.pac.timesheet.controller.StorageController;
 
 @SpringBootApplication
 @EnableAutoConfiguration
@@ -32,85 +33,79 @@ public class TimesheetApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TimesheetApplication.class, args);
 	}
+
 	@Autowired
-	TimesheetController temp;
-	
+	StorageController temp;
+
 	@Bean
 	@ServiceActivator(inputChannel = "mqttOutboundChannel")
 	public MqttPahoMessageHandler mqttOutbound() {
-	    MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(MqttClient.generateClientId(), mqttClientFactory());
-	    return messageHandler;
+		MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(MqttClient.generateClientId(),
+				mqttClientFactory());
+		return messageHandler;
 	}
+
 	@Bean
 	public MessageChannel mqttOutboundChannel() {
-	    return new DirectChannel();
+		return new DirectChannel();
 	}
-	
-    @Bean
-    public MqttConnectOptions getReceiverMqttConnectOptions() {
-        MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setCleanSession(true);
-        mqttConnectOptions.setConnectionTimeout(30);
-        mqttConnectOptions.setKeepAliveInterval(60);
-        mqttConnectOptions.setAutomaticReconnect(true);
 
-//      String hostUrl = "tcp://maqiatto.com:1883";
-        String hostUrl = "tcp://debian:1883";
-//      mqttConnectOptions.setPassword(password.toCharArray());
-        mqttConnectOptions.setServerURIs(new String[] { hostUrl });
-        return mqttConnectOptions;
-    }
+	@Bean
+	public MqttConnectOptions getReceiverMqttConnectOptions() {
+		MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+		mqttConnectOptions.setCleanSession(true);
+		mqttConnectOptions.setConnectionTimeout(30);
+		mqttConnectOptions.setKeepAliveInterval(60);
+		mqttConnectOptions.setAutomaticReconnect(true);
 
-    @Bean
-    public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
-        factory.setConnectionOptions(getReceiverMqttConnectOptions());
-        return factory;
-    }
+		String hostUrl = "tcp://debian:1883";
+		mqttConnectOptions.setServerURIs(new String[] { hostUrl });
+		return mqttConnectOptions;
+	}
 
-    @Bean
-    public MessageProducer inbound() {
-        String clientId2 = "uuid-" + UUID.randomUUID().toString();
-        MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(clientId2,
+	@Bean
+	public MqttPahoClientFactory mqttClientFactory() {
+		DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
+		factory.setConnectionOptions(getReceiverMqttConnectOptions());
+		return factory;
+	}
+
+	@Bean
+	public MessageProducer inbound() {
+		String clientId2 = "uuid-" + UUID.randomUUID().toString();
+		MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(clientId2,
 //              mqttClientFactory(), "myemail/test");
-                mqttClientFactory(), "test", "test/paho");
-        adapter.setCompletionTimeout(20000);
-        adapter.setConverter(new DefaultPahoMessageConverter());
-        adapter.setQos(2);
-        adapter.setOutputChannel(mqttOutboundChannel());
-        return adapter;
-    }
-    
-    @Bean 
-    public MqttClient mqttClient () {
-    	try {
-    	
-			MqttClient mqttClient = new MqttClient( "tcp://debian:1883", "timesheet");
-			mqttClient.connect();
-			mqttClient.setCallback( new MqttCallback() {				
-				@Override
-				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					temp.storeMessage(message.getPayload().toString());
-					
-				}
+				mqttClientFactory(), "test", "test/paho");
+		adapter.setCompletionTimeout(20000);
+		adapter.setConverter(new DefaultPahoMessageConverter());
+		adapter.setQos(2);
+		adapter.setOutputChannel(mqttOutboundChannel());
+		return adapter;
+	}
+
+	@Bean
+	public MqttClient mqttClient() throws MqttException {
+
+		MqttClient client = (MqttClient) mqttClientFactory().getClientInstance("tcp://debian:1883", MqttClient.generateClientId());
+		client.connect();
+		IMqttMessageListener listener = new IMqttMessageListener() {
+			
+			@Override
+			public void messageArrived(String topic, MqttMessage message) throws Exception {
+				temp.storeMessage(message.toString());
 				
-				@Override
-				public void deliveryComplete(IMqttDeliveryToken token) {
-					System.out.println("Devlivery");
-					
-				}
+			}
+		};
+		client.subscribe("timesheet", listener);
+		client.subscribe("activity", new IMqttMessageListener() {
+			
+			@Override
+			public void messageArrived(String topic, MqttMessage message) throws Exception {
+				temp.storeActivity(message.toString());
 				
-				@Override
-				public void connectionLost(Throwable cause) {
-					System.out.println("passe connection lost");
-					
-				}
-			});
-			return mqttClient;
-		} catch (MqttException e) {
-			System.out.println("cannot create Mqtt client");
-			return null;
-		}
-    }
-	
+			}
+		});
+		return client;
+	}
+
 }

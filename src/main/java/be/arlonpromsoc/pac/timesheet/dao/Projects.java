@@ -32,9 +32,9 @@ public class Projects {
 	private String name; 
 	
 	// Lazy car chargement employé sur demande
-	@ManyToMany(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
-	@JoinTable(name="EMPLOYEE_PROJECT", joinColumns = {@JoinColumn(name="PROJECT_ID")}, inverseJoinColumns = {@JoinColumn(name="EMPLOYEE_ID")} )
-	private List<Employees> employee;
+//	@ManyToMany(fetch = FetchType.LAZY, cascade=CascadeType.ALL)
+//	@JoinTable(name="EMPLOYEE_PROJECT", joinColumns = {@JoinColumn(name="PROJECT_ID")}, inverseJoinColumns = {@JoinColumn(name="EMPLOYEE_ID")} )
+//	private List<Employees> employee;
 	
 	// Charge les projets des qu'un employé est chargé
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "project")
@@ -56,13 +56,13 @@ public class Projects {
 		this.name = name;
 	}
 
-	public List<Employees> getEmployee() {
-		return employee;
-	}
-
-	public void setEmployee(List<Employees> employee) {
-		this.employee = employee;
-	}
+//	public List<Employees> getEmployee() {
+//		return employee;
+//	}
+//
+//	public void setEmployee(List<Employees> employee) {
+//		this.employee = employee;
+//	}
 
 	public List<Activity> getActivities() {
 		return activities;
