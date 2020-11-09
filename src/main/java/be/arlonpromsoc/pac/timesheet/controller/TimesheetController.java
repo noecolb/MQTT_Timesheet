@@ -4,6 +4,10 @@ import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
@@ -13,8 +17,6 @@ import be.arlonpromsoc.pac.timesheet.dao.Employees;
 import be.arlonpromsoc.pac.timesheet.dao.Projects;
 import be.arlonpromsoc.pac.timesheet.dao.RequestToStore;
 import be.arlonpromsoc.pac.timesheet.dao.Timesheets;
-import be.arlonpromsoc.pac.timesheet.service.ActivityService;
-import be.arlonpromsoc.pac.timesheet.service.ActivityServiceImpl;
 import be.arlonpromsoc.pac.timesheet.service.StoreService;
 
 @Controller
@@ -22,11 +24,13 @@ public class TimesheetController  {
 	
 	@Autowired
 	StoreService storeService;
+	
+	@Autowired
+	MqttClient handler;
 	 
 	 
 	public void storeMessage (String message){
-		
-		// Create unit test 
+	
 		
 		Projects project = new Projects();
 		Activity activity = new Activity();
@@ -75,12 +79,30 @@ public class TimesheetController  {
 		
 		
 		storeService.storeRequest(req);
+		
+		try {
+			responseToMessage("OK");
+			System.out.println("ok");
+		} catch (MqttPersistenceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MqttException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
 			
 	}
 	
-	public void responseToMessage (String message ) {
+	public void responseToMessage (String message ) throws MqttPersistenceException, MqttException {
 		System.out.println(message);
-		// MQQT OUTBOUT PRODUCER RESPONSE 
+		MqttMessage response = new MqttMessage();
+		response.setPayload(message.getBytes());
+		// MQTT OUTBOUT PRODUCER RESPONSE 
+		handler.publish("timesheet", response);
+
+		
 	}
 	
 }
